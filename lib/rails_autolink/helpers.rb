@@ -49,7 +49,7 @@ module RailsAutolink
         #   auto_link(post_body, :all, :target => "_blank")
         #   # => "Welcome to my new blog at <a href=\"http://www.myblog.com/\" target=\"_blank\">http://www.myblog.com</a>.
         #         Please e-mail me at <a href=\"mailto:me@email.com\">me@email.com</a>."
-        def auto_link(text, *args, &block) #link = :all, html = {}, &block)
+        def redact_links(text, *args, &block) #link = :all, html = {}, &block)
           return ''.html_safe if text.blank?
 
           options = args.size == 2 ? {} : args.extract_options! # this is necessary because the old auto_link API has a Hash as its last parameter
@@ -92,29 +92,25 @@ module RailsAutolink
             text.gsub(AUTO_LINK_RE) do
               scheme, href = $1, $&
               punctuation = []
-
-              if auto_linked?($`, $')
-                # do not change string; URL is already linked
-                href
-              else
-                # don't include trailing punctuation character as part of the URL
-                while href.sub!(/[^#{WORD_PATTERN}\/-=&]$/, '')
-                  punctuation.push $&
-                  if opening = BRACKETS[punctuation.last] and href.scan(opening).size > href.scan(punctuation.last).size
-                    href << punctuation.pop
-                    break
-                  end
+              
+              # don't include trailing punctuation character as part of the URL
+              while href.sub!(/[^#{WORD_PATTERN}\/-=&]$/, '')
+                punctuation.push $&
+                if opening = BRACKETS[punctuation.last] and href.scan(opening).size > href.scan(punctuation.last).size
+                  href << punctuation.pop
+                  break
                 end
-
-                link_text = block_given?? yield(href) : href
-                href = 'http://' + href unless scheme
-
-                unless options[:sanitize] == false
-                  link_text = sanitize(link_text)
-                  href      = sanitize(href)
-                end
-                content_tag(:a, link_text, link_attributes.merge('href' => href), !!options[:sanitize]) + punctuation.reverse.join('')
               end
+
+              link_text = block_given?? yield(href) : href
+              href = 'http://' + href unless scheme
+
+              unless options[:sanitize] == false
+                link_text = sanitize(link_text)
+                href      = sanitize(href)
+              end
+              
+              "<hidden>" + punctuation.reverse.join('')
             end
           end
 
@@ -124,17 +120,13 @@ module RailsAutolink
             text.gsub(AUTO_EMAIL_RE) do
               text = $&
 
-              if auto_linked?($`, $')
-                text.html_safe
-              else
-                display_text = (block_given?) ? yield(text) : text
+              display_text = (block_given?) ? yield(text) : text
 
-                unless options[:sanitize] == false
-                  text         = sanitize(text)
-                  display_text = sanitize(display_text) unless text == display_text
-                end
-                mail_to text, display_text, html_options
+              unless options[:sanitize] == false
+                text         = sanitize(text)
+                display_text = sanitize(display_text) unless text == display_text
               end
+              "<hidden>"
             end
           end
 
