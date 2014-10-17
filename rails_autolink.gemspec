@@ -1,7 +1,7 @@
 require File.expand_path "#{File.dirname(__FILE__)}/lib/rails_autolink/version"
 
 Gem::Specification.new do |s|
-  s.name = 'rails_autolink'
+  s.name = 'rails_redact_links'
   s.version = RailsAutolink::VERSION
   s.date = Time.now.strftime('%Y-%m-%d')
   s.authors = ['Aaron Patterson', 'Juanjo Bazan', 'Akira Matsuda']
